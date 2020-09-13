@@ -1,4 +1,7 @@
 # -*- coding: binary -*-
+
+require 'msf/core/opt_condition'
+
 module Msf
 module Serializer
 
@@ -257,7 +260,7 @@ class ReadableText
 
     # Check
     output << "Check supported:\n"
-    output << "#{indent}#{mod.respond_to?(:check) ? 'Yes' : 'No'}\n\n"
+    output << "#{indent}#{mod.has_check? ? 'Yes' : 'No'}\n\n"
 
     # Options
     if (mod.options.has_options?)
@@ -323,8 +326,9 @@ class ReadableText
     end
 
     # Check
+    has_check = mod.has_check?
     output << "Check supported:\n"
-    output << "#{indent}#{mod.respond_to?(:check) ? 'Yes' : 'No'}\n\n"
+    output << "#{indent}#{has_check ? 'Yes' : 'No'}\n\n"
 
     # Options
     if (mod.options.has_options?)
@@ -433,7 +437,7 @@ class ReadableText
 
     # Check
     output << "Check supported:\n"
-    output << "#{indent}#{mod.respond_to?(:check) ? 'Yes' : 'No'}\n\n"
+    output << "#{indent}#{mod.has_check? ? 'Yes' : 'No'}\n\n"
 
     # Options
     if (mod.options.has_options?)
@@ -554,6 +558,7 @@ class ReadableText
     mod.options.sorted.each do |name, opt|
       val = mod.datastore[name].nil? ? opt.default : mod.datastore[name]
 
+      next unless Msf::OptCondition.show_option(mod, opt)
       next if (opt.advanced?)
       next if (opt.evasion?)
       next if (missing && opt.valid?(val))
@@ -598,6 +603,7 @@ class ReadableText
 
     mod.options.sorted.each do |name, opt|
       next unless opt.advanced?
+      next unless Msf::OptCondition.show_option(mod, opt)
       val = mod.datastore[name].nil? ? opt.default : mod.datastore[name]
       tbl << [ name, opt.display_value(val), opt.required? ? "yes" : "no", opt.desc ]
     end
@@ -896,9 +902,9 @@ class ReadableText
       sess_type    = session.type.to_s
       sess_uuid    = session.payload_uuid.to_s
       sess_luri    = session.exploit_datastore['LURI'] || "" if session.exploit_datastore
-      sess_enc     = false
+      sess_enc     = 'No'
       if session.respond_to?(:tlv_enc_key) && session.tlv_enc_key && session.tlv_enc_key[:key]
-        sess_enc   = true
+        sess_enc   = "Yes (AES-#{session.tlv_enc_key[:key].length * 8}-CBC)"
       end
 
       sess_checkin = "<none>"
